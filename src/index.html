@@ -5,12 +5,14 @@
 		<meta charset="utf-8">
 		<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' ; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;" />
 		<link href="./bootstrap.min.css" rel="stylesheet" type="text/css">
+
 	</head>
 	<body>
 		<input class="btn" type="button" value="Start Scan" id="startscan"></input>
 		<input class="btn" type="button" value="Disconnect" id="disconnect"></input>
-		<input class="btn" type="button" value="Connect" id="scanandconnect"></input>
-		
+
+		<ul class="list-group" id="deviceList"></ul>
+
 		<div id="status"></div>
 
 		<script>
@@ -25,18 +27,23 @@
 			const BLE_RW_CHARACTERISTIC_UUID = 'd6f25bd2-5b54-4360-96d8-7aa62e04c7ef';
 			const BLE_NR_CHARACTERISTIC_UUID = 'd6f25bd4-5b54-4360-96d8-7aa62e04c7ef';
 	
+			//Display debug msg to anyware you like
 			const status_log = str => {
 				document.getElementById("status").innerHTML = str;
 			}
 
-			//receive device information
-			ipcRenderer.on('discoverd-device', (event, message) => {
-				status_log(message);
-			})
+			//to check duplecate
+			let discoverd_id = []; 
 
 			const scanOnly = () => {
+				//unlink active connection
+				disconnect();
+				//initialize list
+				document.getElementById('deviceList').innerHTML = '';
+				discoverd_id = [];
+				//to receive device list in main, notify to main
 				ipcRenderer.send('scan-only', 'startScanOnly');
-				status_log("Connecting to device");
+				status_log("Now only scanning");
 				navigator.bluetooth.requestDevice({
 					filters: [{
 						services: [BLE_SERVICE_UUID] //only small char-case
@@ -47,10 +54,20 @@
 				});
 			}
 
-			const scanAndConnect = () => {
+			//receive device information
+			ipcRenderer.on('discoverd-device', (event, message) => {
+				//status_log(message);
+				const device = JSON.parse(message);
+				if(!discoverd_id.includes(device.deviceId)){
+					discoverd_id.push(device.deviceId);
+					document.getElementById('deviceList').innerHTML += "<li class=\"list-group-item\" onclick=\"scanAndConnect('" + device.deviceId + "')\">" + device.deviceName + ": " + device.deviceId + "</li>";
+				}
+			})
+
+			const scanAndConnect = (deviceId) => {
 				//call requestDevice twice automatically cancel former one. no need to send callback.
 				//ipcRenderer.send('stop-scan', '')  
-				ipcRenderer.send('scan-and-connect', 'C0:C2:98:5A:93:0E')  
+				ipcRenderer.send('scan-and-connect', deviceId)  
 				status_log("Connecting to device");
 				navigator.bluetooth.requestDevice({
 					filters: [{
@@ -100,6 +117,10 @@
 			}
 	
 			const disconnect = () => {
+				//initialize list
+				document.getElementById('deviceList').innerHTML = '';
+				discoverd_id = [];
+
 				if (!ble_device || !ble_device.gatt.connected) return ;
 				ble_device.gatt.disconnect();
 				status_log("Disconnected with BLE device")
@@ -116,9 +137,8 @@
 			}
 
 			//
-			document.getElementById("startscan").addEventListener("click" , scanOnly , false );;			
-			document.getElementById("disconnect").addEventListener("click" , disconnect , false );;			
-			document.getElementById("scanandconnect").addEventListener("click" , scanAndConnect , false );;			
+			document.getElementById("startscan").addEventListener("click" , scanOnly , false );		
+			document.getElementById("disconnect").addEventListener("click" , disconnect , false );	
 
 		</script>
 		

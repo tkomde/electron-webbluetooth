@@ -1,6 +1,6 @@
 {
   "name": "electron-webbluetooth",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "webbt integration sample for electron",
   "main": "src/main.js",
   "scripts": {
@@ -14,5 +14,6 @@
   "license": "MIT",
   "devDependencies": {
     "electron": "^5.0.0"
-  }
+  },
+  "dependencies": {}
 }

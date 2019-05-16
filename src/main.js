@@ -21,10 +21,10 @@ app.on('ready', () => {
 
   const onSBDscanOnly =  (event, deviceList, callback) => {
     event.preventDefault();
-    console.log(JSON.stringify(deviceList));
+    //console.log(JSON.stringify(deviceList));
     let result = deviceList.find((device) => {
       browserWindow.webContents.send('discoverd-device', JSON.stringify(device));
-      return;// device.deviceId === "C0:C2:98:5A:93:0E"
+      return;
     })
 
     //call requestDevice twice automatically cancel former one. no need to send callback.
@@ -34,30 +34,31 @@ app.on('ready', () => {
   }
 
   ipcMain.on('scan-only', (event, arg) => {
-    browserWindow.webContents.on('select-bluetooth-device', onSBDscanOnly);
     console.log("scan only")
+    browserWindow.webContents.removeAllListeners('select-bluetooth-device');
+    browserWindow.webContents.on('select-bluetooth-device', onSBDscanOnly);
   })
 
+  let deviceToConnect;
   const onSBDscanAndConnect =  (event, deviceList, callback) => {
     event.preventDefault();
-    console.log(JSON.stringify(deviceList));
+    //console.log(JSON.stringify(deviceList));
     let result = deviceList.find((device) => {
-      browserWindow.webContents.send('discoverd-device', JSON.stringify(device));
-      return device.deviceId === "C0:C2:98:5A:93:0E"
+      //browserWindow.webContents.send('discoverd-device', JSON.stringify(device));
+      return device.deviceId === deviceToConnect;
     })
 
-    if (!result) {
-      //callback(''); this emits cancel of requestDevice
-    } else {
+    if (result) {
       callback(result.deviceId);
     }
   }
 
   ipcMain.on('scan-and-connect', (event, arg) => {
-    browserWindow.webContents.removeListener('select-bluetooth-device', onSBDscanOnly);
+    console.log(`scan and connect to ${arg}`)
+    deviceToConnect = arg;
+    //To call different callback, delete former callback
+    browserWindow.webContents.removeAllListeners('select-bluetooth-device');
     browserWindow.webContents.on('select-bluetooth-device', onSBDscanAndConnect);
-    console.log("scan and connect")
   })
 
-  
 });

@@ -4,7 +4,8 @@ Chromium Webbluetooth integration sample with electron.
 
 ## Prerequisites
 
-- electron: ^5.0.0 (Maybe >=3 will work)
+- electron(Maybe >=3 will work)
+- bootstrap(included)
 
 ## Implementation
 
