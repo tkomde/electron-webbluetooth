@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<title>Electron-WebBluetooth</title>
+		<meta charset="utf-8">
+		<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' ; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;" />
+		<link href="./bootstrap.min.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<input class="btn" type="button" value="Start Scan" id="startscan"></input>
+		<input class="btn" type="button" value="Disconnect" id="disconnect"></input>
+		<input class="btn" type="button" value="Connect" id="scanandconnect"></input>
+		
+		<div id="status"></div>
+
+		<script>
+			const {ipcRenderer} = require('electron')
+
+			let ble_device;
+			let ble_service;
+			let ble_rw_characteristics;
+			let ble_nr_characteristics;
+			//these are my testing device, replace you own.
+			const BLE_SERVICE_UUID = 'd6f25bd1-5b54-4360-96d8-7aa62e04c7ef';
+			const BLE_RW_CHARACTERISTIC_UUID = 'd6f25bd2-5b54-4360-96d8-7aa62e04c7ef';
+			const BLE_NR_CHARACTERISTIC_UUID = 'd6f25bd4-5b54-4360-96d8-7aa62e04c7ef';
+	
+			const status_log = str => {
+				document.getElementById("status").innerHTML = str;
+			}
+
+			//receive device information
+			ipcRenderer.on('discoverd-device', (event, message) => {
+				status_log(message);
+			})
+
+			const scanOnly = () => {
+				ipcRenderer.send('scan-only', 'startScanOnly');
+				status_log("Connecting to device");
+				navigator.bluetooth.requestDevice({
+					filters: [{
+						services: [BLE_SERVICE_UUID] //only small char-case
+					}]
+				})
+				.catch(error => {
+					console.log(`error: ${error}`);
+				});
+			}
+
+			const scanAndConnect = () => {
+				//call requestDevice twice automatically cancel former one. no need to send callback.
+				//ipcRenderer.send('stop-scan', '')  
+				ipcRenderer.send('scan-and-connect', 'C0:C2:98:5A:93:0E')  
+				status_log("Connecting to device");
+				navigator.bluetooth.requestDevice({
+					filters: [{
+						services: [BLE_SERVICE_UUID] //only small char-case
+					}]
+				})
+				.then(device => {
+					ble_device = device;
+					console.log("device", device);
+					status_log("Connected to device");
+					ble_device.addEventListener('gattserverdisconnected', onDisconnected);
+					return device.gatt.connect();
+				})
+				.then(server =>{
+					console.log("server", server)
+					status_log("Connected to GATT server");
+					return server.getPrimaryService(BLE_SERVICE_UUID);
+				})
+				.then(service => {
+					console.log("service", service)
+					ble_service = service;
+					return Promise.all([
+						ble_service.getCharacteristic(BLE_NR_CHARACTERISTIC_UUID)
+							.then(characteristic => {
+								ble_nr_characteristics = characteristic;
+								ble_nr_characteristics.startNotifications();
+								ble_nr_characteristics.addEventListener('characteristicvaluechanged',handleNotifications);
+								console.log("characteristic:", characteristic);
+							}),
+						ble_service.getCharacteristic(BLE_RW_CHARACTERISTIC_UUID)
+							.then(characteristic => {
+							ble_rw_characteristics = characteristic;
+							console.log("characteristic:", characteristic);
+						})
+					])
+				})
+				.then( () => {
+					status_log("Completed BLE connection");
+				})
+				.catch(error => {
+					console.log(`error: ${error}`);
+				});
+			}
+	
+			const onDisconnected = () => {
+				status_log('Bluetooth Device disconnected from device.');
+			}
+	
+			const disconnect = () => {
+				if (!ble_device || !ble_device.gatt.connected) return ;
+				ble_device.gatt.disconnect();
+				status_log("Disconnected with BLE device")
+			}
+
+			//notification handling
+			const handleNotifications = event => {
+				const value = event.target.value;
+				let notf_data = new Uint8Array(20);
+				for (let i = 0; i < 20; i++) {
+					notf_data[i] = value.getUint8(i);
+				}
+				status_log(notf_data);
+			}
+
+			//
+			document.getElementById("startscan").addEventListener("click" , scanOnly , false );;			
+			document.getElementById("disconnect").addEventListener("click" , disconnect , false );;			
+			document.getElementById("scanandconnect").addEventListener("click" , scanAndConnect , false );;			
+
+		</script>
+		
+	</body>
+</html>
