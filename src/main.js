@@ -19,46 +19,36 @@ app.on('ready', () => {
   // open page
   browserWindow.loadFile('index.html');
 
-  const onSBDscanOnly =  (event, deviceList, callback) => {
+  let deviceToConnect = null;
+
+  //This function is called periodically
+  const onSelectBluetoothDevice = (event, deviceList, callback) => {
     event.preventDefault();
-    //console.log(JSON.stringify(deviceList));
-    let result = deviceList.find((device) => {
-      browserWindow.webContents.send('discoverd-device', JSON.stringify(device));
-      return;
-    })
+    //all discovered devices are arrayied
+    console.log(` ${JSON.stringify(deviceList)}`);
 
-    //call requestDevice twice automatically cancel former one. no need to send callback.
-    //ipcMain.on('stop-scan', (event, arg) => {
-    //  callback('');
-    //})
-  }
+    for (let i in deviceList){
+      browserWindow.webContents.send('discoverd-device', JSON.stringify(deviceList[i]));
+      if(deviceToConnect !== null){
+        browserWindow.webContents.removeAllListeners('select-bluetooth-device');
+        console.log(`callback to: ${deviceToConnect}`)
+        callback(deviceToConnect);
+        //To avoid multiple callbacl call, reset to null
+        deviceToConnect = null;
+      }
+    }
+   }
 
-  ipcMain.on('scan-only', (event, arg) => {
-    console.log("scan only")
+  ipcMain.on('scan', (event, arg) => {
+    console.log("scan")
     browserWindow.webContents.removeAllListeners('select-bluetooth-device');
-    browserWindow.webContents.on('select-bluetooth-device', onSBDscanOnly);
+    browserWindow.webContents.on('select-bluetooth-device', onSelectBluetoothDevice);
   })
 
-  let deviceToConnect;
-  const onSBDscanAndConnect =  (event, deviceList, callback) => {
-    event.preventDefault();
-    //console.log(JSON.stringify(deviceList));
-    let result = deviceList.find((device) => {
-      //browserWindow.webContents.send('discoverd-device', JSON.stringify(device));
-      return device.deviceId === deviceToConnect;
-    })
-
-    if (result) {
-      callback(result.deviceId);
-    }
-  }
-
-  ipcMain.on('scan-and-connect', (event, arg) => {
-    console.log(`scan and connect to ${arg}`)
+  //specify device to connect from renderer
+  ipcMain.on('connect', (event, arg) => {
+    console.log(`trying to connect: ${arg}`)
     deviceToConnect = arg;
-    //To call different callback, delete former callback
-    browserWindow.webContents.removeAllListeners('select-bluetooth-device');
-    browserWindow.webContents.on('select-bluetooth-device', onSBDscanAndConnect);
   })
 
 });

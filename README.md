@@ -1,26 +1,24 @@
-# electron-webbt
+# electron-WebBluetooth
 
-Chromium Webbluetooth integration sample with electron.
+WebBluetooth integration sample with electron. Supports select multiple device candidates to connect.
 
 ## Prerequisites
 
-- electron(Maybe >=3 will work)
+- electron(>=3 will work)
 - bootstrap(included)
-
-## Implementation
-
-I don't have a confidence that this method is proper or not. But it works ;).
 
 ### How it works
 
 1. Scan(requestDevice in renderer, and no callback in main) to get device list.
-1. If device you want to connect is found, rerun scan (with callback in main).
+1. The device list is called periodically.
+1. If you find the deviceId you want to connect, select and notify to main.
+1. Connection callback called once, and delete deviceId.
 
 ### Restrictions to implement WebBluetooth in electron
 
 - If event.preventDefault is not called, first available device will be selected.
-- callback should be called with deviceId to be selected, passing empty string to callback will **cancel** the request.
-- callback should be called asap(so it needs scan twice).
+- Callback should be called with deviceId to be selected, passing empty string to callback will **cancel** the request.
+- Callback should be called asap.
 - Calling requestDevice twice causes automatically cancel the former one.
 
 ## Link

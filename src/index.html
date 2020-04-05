@@ -23,10 +23,10 @@
 			let ble_rw_characteristics;
 			let ble_nr_characteristics;
 			//these are my testing device, replace you own.
-			const BLE_SERVICE_UUID = 'd6f25bd1-5b54-4360-96d8-7aa62e04c7ef';
-			const BLE_RW_CHARACTERISTIC_UUID = 'd6f25bd2-5b54-4360-96d8-7aa62e04c7ef';
-			const BLE_NR_CHARACTERISTIC_UUID = 'd6f25bd4-5b54-4360-96d8-7aa62e04c7ef';
-	
+			const BLE_SERVICE_UUID = 'f5dc3761-ce15-4449-8cfa-7af6ad175056';
+			const BLE_RW_CHARACTERISTIC_UUID = 'f5dc3762-ce15-4449-8cfa-7af6ad175056';
+			const BLE_NR_CHARACTERISTIC_UUID = 'f5dc3764-ce15-4449-8cfa-7af6ad175056';
+
 			//Display debug msg to anyware you like
 			const status_log = str => {
 				document.getElementById("status").innerHTML = str;
@@ -35,40 +35,15 @@
 			//to check duplecate
 			let discoverd_id = []; 
 
-			const scanOnly = () => {
+			const scan = () => {
 				//unlink active connection
 				disconnect();
 				//initialize list
 				document.getElementById('deviceList').innerHTML = '';
 				discoverd_id = [];
 				//to receive device list in main, notify to main
-				ipcRenderer.send('scan-only', 'startScanOnly');
-				status_log("Now only scanning");
-				navigator.bluetooth.requestDevice({
-					filters: [{
-						services: [BLE_SERVICE_UUID] //only small char-case
-					}]
-				})
-				.catch(error => {
-					console.log(`error: ${error}`);
-				});
-			}
-
-			//receive device information
-			ipcRenderer.on('discoverd-device', (event, message) => {
-				//status_log(message);
-				const device = JSON.parse(message);
-				if(!discoverd_id.includes(device.deviceId)){
-					discoverd_id.push(device.deviceId);
-					document.getElementById('deviceList').innerHTML += "<li class=\"list-group-item\" onclick=\"scanAndConnect('" + device.deviceId + "')\">" + device.deviceName + ": " + device.deviceId + "</li>";
-				}
-			})
-
-			const scanAndConnect = (deviceId) => {
-				//call requestDevice twice automatically cancel former one. no need to send callback.
-				//ipcRenderer.send('stop-scan', '')  
-				ipcRenderer.send('scan-and-connect', deviceId)  
-				status_log("Connecting to device");
+				ipcRenderer.send('scan', 'scan');
+				status_log("Now scanning");
 				navigator.bluetooth.requestDevice({
 					filters: [{
 						services: [BLE_SERVICE_UUID] //only small char-case
@@ -111,6 +86,21 @@
 					console.log(`error: ${error}`);
 				});
 			}
+
+			//receive device information
+			ipcRenderer.on('discoverd-device', (event, message) => {
+				//status_log(message);
+				const device = JSON.parse(message);
+				if(!discoverd_id.includes(device.deviceId)){
+					discoverd_id.push(device.deviceId);
+					document.getElementById('deviceList').innerHTML += "<li class=\"list-group-item\" onclick=\"connect('" + device.deviceId + "')\">" + device.deviceName + ": " + device.deviceId + "</li>";
+				}
+			})
+
+			//send deviceId to connect
+			const connect = (deviceId) => {
+				ipcRenderer.send('connect', deviceId)  
+			}
 	
 			const onDisconnected = () => {
 				status_log('Bluetooth Device disconnected from device.');
@@ -136,8 +126,8 @@
 				status_log(notf_data);
 			}
 
-			//
-			document.getElementById("startscan").addEventListener("click" , scanOnly , false );		
+			//add eventlistener
+			document.getElementById("startscan").addEventListener("click" , scan , false );		
 			document.getElementById("disconnect").addEventListener("click" , disconnect , false );	
 
 		</script>
