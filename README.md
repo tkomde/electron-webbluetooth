@@ -9,17 +9,17 @@ WebBluetooth integration sample with electron. Supports select multiple device c
 
 ### How it works
 
-1. Scan(requestDevice in renderer, and no callback in main) to get device list.
-1. The device list is called periodically.
+1. In renderer, scan() to get device list.
+1. The devices list is notified periodically via IPC in main.
 1. If you find the deviceId you want to connect, select and notify to main.
-1. Connection callback called once, and delete deviceId.
+1. Connection callback called once in main, and delete deviceId.
 
 ### Restrictions to implement WebBluetooth in electron
 
 - If event.preventDefault is not called, first available device will be selected.
 - Callback should be called with deviceId to be selected, passing empty string to callback will **cancel** the request.
-- Callback should be called asap.
 - Calling requestDevice twice causes automatically cancel the former one.
+- **Calling requestDevice automatically is not allowed** as same as normal webbluetooth.
 
 ## Link
 
