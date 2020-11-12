@@ -35,32 +35,15 @@
 			//to check duplecate
 			let discoverd_id = []; 
 
-			const scan = () => {
-				//unlink active connection
-				disconnect();
-				//initialize list
-				document.getElementById('deviceList').innerHTML = '';
-				discoverd_id = [];
-				//to receive device list in main, notify to main
-				ipcRenderer.send('scan', 'scan');
-				status_log("Now scanning");
-				navigator.bluetooth.requestDevice({
-					filters: [{
-						services: [BLE_SERVICE_UUID] //only small char-case
-					}]
-				})
-				.then(device => {
-					ble_device = device;
-					console.log("device", device);
-					status_log("Connected to device");
-					ble_device.addEventListener('gattserverdisconnected', onDisconnected);
-					return device.gatt.connect();
-				})
+			const connectToDevice = _device => {
+				console.log("device", _device);
+				status_log("Connecting to device");
+				_device.gatt.connect()
 				.then(server =>{
 					console.log("server", server)
 					status_log("Connected to GATT server");
 					return server.getPrimaryService(BLE_SERVICE_UUID);
-				})
+				})				
 				.then(service => {
 					console.log("service", service)
 					ble_service = service;
@@ -81,6 +64,32 @@
 				})
 				.then( () => {
 					status_log("Completed BLE connection");
+				})
+				.catch(error => {
+					console.log(`server func error: ${error}`);
+				});
+			}
+
+			const scan = () => {
+				//unlink active connection
+				disconnect();
+				//initialize list
+				document.getElementById('deviceList').innerHTML = '';
+				discoverd_id = [];
+				//to receive device list in main, notify to main
+				ipcRenderer.send('scan', 'scan');
+				status_log("Now scanning");
+				navigator.bluetooth.requestDevice({
+					filters: [{
+						services: [BLE_SERVICE_UUID] //only small char-case
+					}]
+				})
+				.then(device => {
+					ble_device = device;
+					console.log("device", device);
+					status_log("Connecting to device");
+					ble_device.addEventListener('gattserverdisconnected', onDisconnected);
+					connectToDevice(device);
 				})
 				.catch(error => {
 					console.log(`error: ${error}`);
@@ -104,6 +113,7 @@
 	
 			const onDisconnected = () => {
 				status_log('Bluetooth Device disconnected from device.');
+				connectToDevice(ble_device);
 			}
 	
 			const disconnect = () => {
