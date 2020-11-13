@@ -16,6 +16,7 @@
 		<script>
 			// BLE variables
 			let ble_device;
+			let ble_server;
 			let ble_service;
 			let ble_rw_characteristics;
 			let ble_nr_characteristics;
@@ -56,13 +57,18 @@
 			//device Id to connect set by renderer
 			let deviceToConnect = null;
 	
+			//detect connecting or not
+			let connecting = false;
+
 			//this function called from requestDevice and disconnection event
 			const connectToDevice = _device => {
+				connecting = true;
 				status_log("Connecting to device");
 				return _device.gatt.connect()
 				.then(server =>{
 					console.log("server", server)
 					status_log("Connected to GATT server");
+					ble_server = server;
 					return server.getPrimaryService(BLE_SERVICE_UUID);
 				})				
 				.then(service => {
@@ -84,6 +90,7 @@
 					])
 				})
 				.then( () => {
+					connecting = false;
 					status_log("Completed BLE connection");
 				})
 				.catch(error => {
@@ -138,11 +145,14 @@
 			//disconnection event both manually and incidentally
 			const onDisconnected = () => {
 				status_log('Bluetooth Device disconnected from device.');
-				if(deviceToConnect !== null){
+				//sometimes event handler broken 
+				if(deviceToConnect !== null && !connecting){
+
+
 					exponentialBackoff(30, 3,
 						() => {
-							//sometimes, 
-							ble_device.gatt.disconnect();
+							//sometimes dead ble_device continue to reconnect
+							//ble_device.gatt.disconnect();
 							return connectToDevice(ble_device);
 						},
 						() => {
@@ -152,6 +162,11 @@
 							status_log('exponentialBackoff: Failed to reconnect.');
 						}
 					);					
+				}
+
+				if(connecting){
+					ble_device.gatt.disconnect();
+
 				}
 			}
 	
