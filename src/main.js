@@ -6,11 +6,11 @@ app.commandLine.appendSwitch('enable-experimental-web-platform-features')
 
 app.on('ready', () => {
   const browserWindow = new BrowserWindow({
-    width: 900,
+    width: 1200,
     height: 600,
     webPreferences: {
       worldSafeExecuteJavaScript: true,
-      nodeIntegration: false, // defaults to false in v12
+      nodeIntegration: false, // defaults to false in electron v12
       contextIsolation: true,
       preload: __dirname + '/preload.js',
     }
@@ -50,9 +50,9 @@ app.on('ready', () => {
     browserWindow.webContents.on('select-bluetooth-device', onSelectBluetoothDevice);
   })
 
-  //receive device to connect from renderer
+  //receive deviceId to connect from renderer
   ipcMain.on('connectDeviceId', (event, arg) => {
-    console.log(`trying to connect: ${arg}`)
+    console.log(`trying to connect device: ${arg}`)
     deviceToConnect = arg;
   })
 });

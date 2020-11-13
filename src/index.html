@@ -5,14 +5,12 @@
 		<meta charset="utf-8">
 		<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' ; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;" />
 		<link href="./bootstrap.min.css" rel="stylesheet" type="text/css">
-
 	</head>
 	<body>
 		<input class="btn" type="button" value="Start Scan" id="startscan"></input>
 		<input class="btn" type="button" value="Disconnect" id="disconnect"></input>
 
 		<ul class="list-group" id="deviceList"></ul>
-
 		<div id="status"></div>
 
 		<script>
@@ -28,7 +26,7 @@
 
 			/* Utils */
 			//Display debug msg
-			let status_buffer = ['', '', '', ''];
+			let status_buffer = ['', '', '', '', ''];
 			const status_log = str => {
         const d = new Date();
 				status_buffer.push(`${d.toLocaleTimeString()} ${str}`);
@@ -46,7 +44,7 @@
 					if (max === 0) {
 						return fail();
 					}
-					setTimeout(function() {
+					setTimeout(() => {
 						exponentialBackoff(--max, delay * 2, toTry, success, fail);
 					}, delay * 1000);
 				});
@@ -60,7 +58,6 @@
 	
 			//this function called from requestDevice and disconnection event
 			const connectToDevice = _device => {
-				console.log("device", _device);
 				status_log("Connecting to device");
 				return _device.gatt.connect()
 				.then(server =>{
@@ -91,9 +88,11 @@
 				})
 				.catch(error => {
 					console.log(`server func error: ${error}`);
+					return fail();
 				});
 			}
 
+			//Scan start by user
 			const scan = () => {
 				//unlink active connection
 				disconnect();
@@ -111,10 +110,11 @@
 				.then(device => {
 					ble_device = device;
 					ble_device.addEventListener('gattserverdisconnected', onDisconnected);
+					console.log("device", device);
 					return connectToDevice(device);
 				})
 				.catch(error => {
-					console.log(`error: ${error}`);
+					console.log(`server func error: ${error}`);
 				});
 			}
 
@@ -128,7 +128,7 @@
 				}
 			})
 
-			//send deviceId to connect
+			//send deviceId to renderer
 			const setConnectDeviceId = (deviceId) => {
 				deviceToConnect = deviceId;
 				status_log('Trying to connect ' + deviceId);
@@ -139,19 +139,20 @@
 			const onDisconnected = () => {
 				status_log('Bluetooth Device disconnected from device.');
 				if(deviceToConnect !== null){
-					exponentialBackoff(30, 2,
+					exponentialBackoff(30, 3,
 						() => {
+							//sometimes, 
+							ble_device.gatt.disconnect();
 							return connectToDevice(ble_device);
 						},
 						() => {
-							status_log('exponentialBackoff: Bluetooth Device connected.');
+							status_log('exponentialBackoff: Success to reconnect.');
 						},
 						() => {
 							status_log('exponentialBackoff: Failed to reconnect.');
 						}
 					);					
 				}
-				
 			}
 	
 			//disconnect manually
@@ -165,7 +166,7 @@
 
 				if (!ble_device || !ble_device.gatt.connected) return ;
 				ble_device.gatt.disconnect();
-				status_log("Disconnected manually")
+				status_log("Manually disconnected from user.")
 			}
 
 			//notification handling
@@ -181,7 +182,7 @@
 
 			//add eventlistener
 			document.getElementById("startscan").addEventListener("click" , scan , false );		
-			document.getElementById("disconnect").addEventListener("click" , disconnect , false );	
+			document.getElementById("disconnect").addEventListener("click" , disconnect , false );		
 
 		</script>
 		
