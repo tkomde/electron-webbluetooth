@@ -13,6 +13,7 @@ WebBluetooth integration sample with electron. Supports select multiple device c
 1. The devices list is notified periodically via IPC in main.
 1. If you find the deviceId you want to connect, select and notify to main.
 1. Connection callback called once in main, and delete deviceId.
+1. (Experimental) Automatically connect former device when disconnected.
 
 ### Restrictions to implement WebBluetooth in electron
 

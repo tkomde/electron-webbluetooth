@@ -9,7 +9,10 @@ app.on('ready', () => {
     width: 900,
     height: 600,
     webPreferences: {
-      nodeIntegration: true //as it changed default in electron5
+      worldSafeExecuteJavaScript: true,
+      nodeIntegration: false, // defaults to false in v12
+      contextIsolation: true,
+      preload: __dirname + '/preload.js',
     }
   });
 
@@ -19,14 +22,14 @@ app.on('ready', () => {
   //open page
   browserWindow.loadFile('index.html');
 
-  //device to connect from renderer
+  //device Id to connect set by renderer
   let deviceToConnect = null;
 
-  //This function is called periodically
+  //this function is called periodically
   const onSelectBluetoothDevice = (event, deviceList, callback) => {
     event.preventDefault();
 
-    //all discovered devices at that time, are arrayied
+    //All discovered devices at that time, are stored in array
     console.log(` ${JSON.stringify(deviceList)}`);
     for (let i in deviceList){
       browserWindow.webContents.send('discoverd-device', JSON.stringify(deviceList[i]));
@@ -38,7 +41,7 @@ app.on('ready', () => {
         deviceToConnect = null;
       }
     }
-   }
+  }
 
   //set listener for callback
   ipcMain.on('scan', (event, arg) => {
@@ -48,7 +51,7 @@ app.on('ready', () => {
   })
 
   //receive device to connect from renderer
-  ipcMain.on('connect', (event, arg) => {
+  ipcMain.on('connectDeviceId', (event, arg) => {
     console.log(`trying to connect: ${arg}`)
     deviceToConnect = arg;
   })

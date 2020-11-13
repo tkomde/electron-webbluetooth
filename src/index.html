@@ -16,8 +16,7 @@
 		<div id="status"></div>
 
 		<script>
-			const {ipcRenderer} = require('electron')
-
+			// BLE variables
 			let ble_device;
 			let ble_service;
 			let ble_rw_characteristics;
@@ -27,18 +26,43 @@
 			const BLE_RW_CHARACTERISTIC_UUID = 'f5dc3762-ce15-4449-8cfa-7af6ad175056';
 			const BLE_NR_CHARACTERISTIC_UUID = 'f5dc3764-ce15-4449-8cfa-7af6ad175056';
 
-			//Display debug msg to anyware you like
+			/* Utils */
+			//Display debug msg
+			let status_buffer = ['', '', '', ''];
 			const status_log = str => {
-				document.getElementById("status").innerHTML = str;
+        const d = new Date();
+				status_buffer.push(`${d.toLocaleTimeString()} ${str}`);
+				status_buffer.shift();
+				document.getElementById("status").innerHTML = status_buffer.reduce((a, b) => {return (a + b + "<br />")},'');		
+			}
+
+			// This function keeps calling "toTry" until promise resolves or has
+			// retried "max" number of times. First retry has a delay of "delay" seconds.
+			// "success" is called upon success.
+			const exponentialBackoff = (max, delay, toTry, success, fail) => {
+				status_log(`exponentialBackoff: max:${max} delay:${delay}`);
+				toTry().then(result => success(result))
+				.catch(_ => {
+					if (max === 0) {
+						return fail();
+					}
+					setTimeout(function() {
+						exponentialBackoff(--max, delay * 2, toTry, success, fail);
+					}, delay * 1000);
+				});
 			}
 
 			//to check duplecate
 			let discoverd_id = []; 
 
+			//device Id to connect set by renderer
+			let deviceToConnect = null;
+	
+			//this function called from requestDevice and disconnection event
 			const connectToDevice = _device => {
 				console.log("device", _device);
 				status_log("Connecting to device");
-				_device.gatt.connect()
+				return _device.gatt.connect()
 				.then(server =>{
 					console.log("server", server)
 					status_log("Connected to GATT server");
@@ -77,7 +101,7 @@
 				document.getElementById('deviceList').innerHTML = '';
 				discoverd_id = [];
 				//to receive device list in main, notify to main
-				ipcRenderer.send('scan', 'scan');
+				window.api.send('scan', 'scan');
 				status_log("Now scanning");
 				navigator.bluetooth.requestDevice({
 					filters: [{
@@ -86,10 +110,8 @@
 				})
 				.then(device => {
 					ble_device = device;
-					console.log("device", device);
-					status_log("Connecting to device");
 					ble_device.addEventListener('gattserverdisconnected', onDisconnected);
-					connectToDevice(device);
+					return connectToDevice(device);
 				})
 				.catch(error => {
 					console.log(`error: ${error}`);
@@ -97,33 +119,53 @@
 			}
 
 			//receive device information
-			ipcRenderer.on('discoverd-device', (event, message) => {
+			window.api.on('discoverd-device', (message) => {
 				//status_log(message);
 				const device = JSON.parse(message);
 				if(!discoverd_id.includes(device.deviceId)){
 					discoverd_id.push(device.deviceId);
-					document.getElementById('deviceList').innerHTML += "<li class=\"list-group-item\" onclick=\"connect('" + device.deviceId + "')\">" + device.deviceName + ": " + device.deviceId + "</li>";
+					document.getElementById('deviceList').innerHTML += "<li class=\"list-group-item\" onclick=\"setConnectDeviceId('" + device.deviceId + "')\">" + device.deviceName + ": " + device.deviceId + "</li>";
 				}
 			})
 
 			//send deviceId to connect
-			const connect = (deviceId) => {
-				ipcRenderer.send('connect', deviceId)  
+			const setConnectDeviceId = (deviceId) => {
+				deviceToConnect = deviceId;
+				status_log('Trying to connect ' + deviceId);
+				window.api.send('connectDeviceId', deviceId)  
 			}
 	
+			//disconnection event both manually and incidentally
 			const onDisconnected = () => {
 				status_log('Bluetooth Device disconnected from device.');
-				connectToDevice(ble_device);
+				if(deviceToConnect !== null){
+					exponentialBackoff(30, 2,
+						() => {
+							return connectToDevice(ble_device);
+						},
+						() => {
+							status_log('exponentialBackoff: Bluetooth Device connected.');
+						},
+						() => {
+							status_log('exponentialBackoff: Failed to reconnect.');
+						}
+					);					
+				}
+				
 			}
 	
+			//disconnect manually
 			const disconnect = () => {
 				//initialize list
 				document.getElementById('deviceList').innerHTML = '';
 				discoverd_id = [];
 
+				//to prevent auto reconnect
+				deviceToConnect = null;
+
 				if (!ble_device || !ble_device.gatt.connected) return ;
 				ble_device.gatt.disconnect();
-				status_log("Disconnected with BLE device")
+				status_log("Disconnected manually")
 			}
 
 			//notification handling
@@ -133,7 +175,8 @@
 				for (let i = 0; i < 20; i++) {
 					notf_data[i] = value.getUint8(i);
 				}
-				status_log(notf_data);
+
+				status_log(`Notification: ${notf_data}`);
 			}
 
 			//add eventlistener
