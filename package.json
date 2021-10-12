@@ -13,7 +13,7 @@
   "author": "Taiki Komoda",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^11.0.0-beta.20"
+    "electron": "^11.5.0"
   },
   "dependencies": {}
 }
