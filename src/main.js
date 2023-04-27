@@ -2,7 +2,7 @@ const {app, BrowserWindow, ipcMain} = require('electron');
 const path = require('path');
 const url = require('url');
 
-app.commandLine.appendSwitch('enable-experimental-web-platform-features')
+//app.commandLine.appendSwitch('enable-experimental-web-platform-features')
 
 app.on('ready', () => {
   const browserWindow = new BrowserWindow({
@@ -20,7 +20,7 @@ app.on('ready', () => {
   browserWindow.webContents.openDevTools();
 
   //open page
-  browserWindow.loadFile('index.html');
+  browserWindow.loadURL(`file://${__dirname}/index.html`);
 
   //device Id to connect set by renderer
   let deviceToConnect = null;

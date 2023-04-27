@@ -8,7 +8,12 @@ Supports selecting multiple device, and reconnection.
 - electron(>=3 will work)
 - bootstrap(included)
 
-### How it works
+## Run
+
+- npm i
+- npx electron .
+
+## How it works
 
 1. In renderer, scan() to get device list.
 1. The devices list is notified periodically via IPC to main process.
@@ -16,7 +21,7 @@ Supports selecting multiple device, and reconnection.
 1. Connection callback called only once in main.
 1. When disconnected, automatically reconnect former connected device.
 
-### Restrictions to implement WebBluetooth in electron
+## Restrictions to implement WebBluetooth in electron
 
 - If event.preventDefault is not called, first available device will be selected.
 - Callback should be called with deviceId to be selected, passing empty string to callback will **cancel** the request.
