@@ -55,4 +55,10 @@ app.on('ready', () => {
     console.log(`trying to connect device: ${arg}`)
     deviceToConnect = arg;
   })
+
+  //auto start scan. Notice: executeJavaScript is async function
+  //browserWindow.webContents.executeJavaScript(
+  //  `scan();`,
+  //  true
+  //);
 });

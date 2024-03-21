@@ -26,11 +26,12 @@ Supports selecting multiple device, and reconnection.
 - If event.preventDefault is not called, first available device will be selected.
 - Callback should be called with deviceId to be selected, passing empty string to callback will **cancel** the request.
 - Calling requestDevice twice causes automatically cancel the former one.
-- **Calling requestDevice automatically is not allowed** as same as normal webbluetooth.
+- By default, requestDevice cannot be called automatically. You can execute it via executeJavaScript() from main script(comment out L60 in main.js).
 
 ## Link
 
-[Electron Documentation - webContents](https://electronjs.org/docs/api/web-contents#event-select-bluetooth-device)
+[Electron Documentation - webContents - select-bluetooth-device](https://electronjs.org/docs/api/web-contents#event-select-bluetooth-device)
+[Electron Documentation - webContents - executejavascriptcode-usergesture](https://electronjs.org/docs/api/web-contents#contentsexecutejavascriptcode-usergesture)
 [Web Bluetooth / Automatic Reconnect Sample](https://googlechrome.github.io/samples/web-bluetooth/automatic-reconnect.html)
 
 ## License
